@@ -1,5 +1,6 @@
 package es.ivanstg.repertoire.piece;
 
+import es.ivanstg.repertoire.common.BusinessRuleException;
 import es.ivanstg.repertoire.common.NotFoundException;
 import es.ivanstg.repertoire.common.PageResponse;
 import es.ivanstg.repertoire.ensemble.Ensemble;
@@ -62,5 +63,17 @@ public class PieceService {
     @Transactional(readOnly = true)
     public Piece find(Long id) {
         return repository.findById(id).orElseThrow(() -> new NotFoundException("Piece", id));
+    }
+
+    /**
+     * Loads a piece that rehearsals and concerts of the given ensemble may use. A missing piece and a piece
+     * from another ensemble are the same broken rule for the caller, so both answer 422.
+     */
+    @Transactional(readOnly = true)
+    public Piece findInRepertoire(Long ensembleId, Long pieceId) {
+        return repository.findById(pieceId)
+                .filter(piece -> piece.belongsTo(ensembleId))
+                .orElseThrow(() -> new BusinessRuleException(
+                        "Piece " + pieceId + " is not in the repertoire of ensemble " + ensembleId));
     }
 }

@@ -52,6 +52,20 @@ public abstract class ApiTest {
                 {"name": "%s", "email": "%s", "mainInstrument": "Alto saxophone"}""".formatted(name, email));
     }
 
+    protected void addMember(long ensembleId, long musicianId) throws Exception {
+        postJson("/api/ensembles/" + ensembleId + "/members", """
+                {"musicianId": %d, "instrument": "Alto saxophone"}""".formatted(musicianId))
+                .andExpect(status().isCreated());
+    }
+
+    /** {@code startsAt} is an ISO local date-time such as "2026-10-01T19:30:00". */
+    protected long createRehearsal(long ensembleId, String startsAt, long... pieceIds) throws Exception {
+        String ids = java.util.Arrays.stream(pieceIds).mapToObj(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(", "));
+        return createId("/api/ensembles/" + ensembleId + "/rehearsals", """
+                {"startsAt": "%s", "location": "Music school", "pieceIds": [%s]}""".formatted(startsAt, ids));
+    }
+
     protected long createPiece(long ensembleId, String title, int durationSeconds, int difficulty) throws Exception {
         return createId("/api/ensembles/" + ensembleId + "/pieces", """
                 {"title": "%s", "durationSeconds": %d, "difficulty": %d}"""
