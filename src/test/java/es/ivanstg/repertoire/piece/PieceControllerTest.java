@@ -131,6 +131,21 @@ class PieceControllerTest extends ApiTest {
     }
 
     @Test
+    void searchTreatsPercentAndUnderscoreLiterally() throws Exception {
+        createFullPiece(band, "100% Swing", "Sammy Nestico", 3, "Swing");
+        createFullPiece(band, "1000 Swingers", "Sammy Nestico", 3, "Swing");
+        createFullPiece(band, "Take_Five", "Paul Desmond", 3, "Jazz");
+        createFullPiece(band, "Take Five", "Paul Desmond", 3, "Jazz");
+
+        mvc.perform(get("/api/pieces").param("q", "100%"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("100% Swing"));
+        mvc.perform(get("/api/pieces").param("q", "take_"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Take_Five"));
+    }
+
+    @Test
     void filtersByEnsembleMaxDifficultyAndGenre() throws Exception {
         createFullPiece(band, "El Camino Real", "Alfred Reed", 4, "Concert band");
         createFullPiece(band, "Arsenal", "Jan Van der Roost", 3, "March");
