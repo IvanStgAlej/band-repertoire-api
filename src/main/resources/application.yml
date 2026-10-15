@@ -9,6 +9,10 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        # Loads lazy associations of a page in batches instead of one query per row (avoids N+1).
+        default_batch_fetch_size: 50
   flyway:
     locations: classpath:db/migration,classpath:db/demo
   mvc:
