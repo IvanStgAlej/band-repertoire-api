@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import es.ivanstg.repertoire.common.PageResponse;
+import es.ivanstg.repertoire.common.Sorting;
 import es.ivanstg.repertoire.rehearsal.dto.AttendanceRateResponse;
 import es.ivanstg.repertoire.rehearsal.dto.AttendanceRequest;
 import es.ivanstg.repertoire.rehearsal.dto.RehearsalRequest;
@@ -63,7 +64,7 @@ public class RehearsalController {
     public PageResponse<RehearsalResponse> list(
             @PathVariable Long ensembleId,
             @PageableDefault(size = 20, sort = "startsAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return service.list(ensembleId, pageable);
+        return service.list(ensembleId, Sorting.requireSortable(pageable, "id", "startsAt", "location"));
     }
 
     @GetMapping("/rehearsals/{id}")

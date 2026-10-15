@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import es.ivanstg.repertoire.common.PageResponse;
+import es.ivanstg.repertoire.common.Sorting;
 import es.ivanstg.repertoire.piece.dto.PieceRequest;
 import es.ivanstg.repertoire.piece.dto.PieceResponse;
 import es.ivanstg.repertoire.piece.dto.PieceSearch;
@@ -62,7 +63,7 @@ public class PieceController {
     @GetMapping("/ensembles/{ensembleId}/pieces")
     public PageResponse<PieceResponse> listByEnsemble(@PathVariable Long ensembleId,
                                                       @PageableDefault(size = 20, sort = "title") Pageable pageable) {
-        return service.listByEnsemble(ensembleId, pageable);
+        return service.listByEnsemble(ensembleId, sortable(pageable));
     }
 
     @GetMapping("/pieces")
@@ -73,7 +74,12 @@ public class PieceController {
                                               @RequestParam(required = false) String genre,
                                               @RequestParam(required = false) String q,
                                               @PageableDefault(size = 20, sort = "title") Pageable pageable) {
-        return service.search(new PieceSearch(ensembleId, maxDifficulty, genre, q), pageable);
+        return service.search(new PieceSearch(ensembleId, maxDifficulty, genre, q), sortable(pageable));
+    }
+
+    private static Pageable sortable(Pageable pageable) {
+        return Sorting.requireSortable(pageable,
+                "id", "title", "composer", "arranger", "durationSeconds", "difficulty", "genre");
     }
 
     @GetMapping("/pieces/{id}")

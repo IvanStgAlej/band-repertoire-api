@@ -3,6 +3,7 @@ package es.ivanstg.repertoire.ensemble;
 import java.net.URI;
 
 import es.ivanstg.repertoire.common.PageResponse;
+import es.ivanstg.repertoire.common.Sorting;
 import es.ivanstg.repertoire.ensemble.dto.EnsembleRequest;
 import es.ivanstg.repertoire.ensemble.dto.EnsembleResponse;
 
@@ -42,7 +43,7 @@ public class EnsembleController {
 
     @GetMapping
     public PageResponse<EnsembleResponse> list(@PageableDefault(size = 20, sort = "name") Pageable pageable) {
-        return service.list(pageable);
+        return service.list(Sorting.requireSortable(pageable, "id", "name", "type", "city"));
     }
 
     @GetMapping("/{id}")

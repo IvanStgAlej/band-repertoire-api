@@ -3,6 +3,7 @@ package es.ivanstg.repertoire.musician;
 import java.net.URI;
 
 import es.ivanstg.repertoire.common.PageResponse;
+import es.ivanstg.repertoire.common.Sorting;
 import es.ivanstg.repertoire.musician.dto.MusicianRequest;
 import es.ivanstg.repertoire.musician.dto.MusicianResponse;
 
@@ -42,7 +43,7 @@ public class MusicianController {
 
     @GetMapping
     public PageResponse<MusicianResponse> list(@PageableDefault(size = 20, sort = "name") Pageable pageable) {
-        return service.list(pageable);
+        return service.list(Sorting.requireSortable(pageable, "id", "name", "email", "mainInstrument"));
     }
 
     @GetMapping("/{id}")

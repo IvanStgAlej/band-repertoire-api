@@ -3,6 +3,7 @@ package es.ivanstg.repertoire.concert;
 import java.net.URI;
 
 import es.ivanstg.repertoire.common.PageResponse;
+import es.ivanstg.repertoire.common.Sorting;
 import es.ivanstg.repertoire.concert.dto.ConcertRequest;
 import es.ivanstg.repertoire.concert.dto.ConcertResponse;
 import es.ivanstg.repertoire.concert.dto.ConcertSummaryResponse;
@@ -54,7 +55,7 @@ public class ConcertController {
     @GetMapping("/ensembles/{ensembleId}/concerts")
     public PageResponse<ConcertResponse> list(@PathVariable Long ensembleId,
                                               @PageableDefault(size = 20, sort = "date") Pageable pageable) {
-        return service.list(ensembleId, pageable);
+        return service.list(ensembleId, Sorting.requireSortable(pageable, "id", "title", "date", "venue"));
     }
 
     @GetMapping("/concerts/{id}")

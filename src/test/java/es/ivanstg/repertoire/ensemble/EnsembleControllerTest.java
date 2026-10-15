@@ -83,6 +83,25 @@ class EnsembleControllerTest extends ApiTest {
     }
 
     @Test
+    void unknownOrUnsortableSortPropertiesOnNestedListsAre400() throws Exception {
+        long id = createEnsemble("Riverside Concert Band");
+
+        var results = new java.util.LinkedHashMap<String, String>();
+        for (String url : new String[] {
+                "/api/ensembles/" + id + "/pieces?sort=banana",
+                "/api/ensembles/" + id + "/rehearsals?sort=pieces",
+                "/api/ensembles/" + id + "/concerts?sort=program",
+                "/api/pieces?sort=rehearsals"}) {
+            var response = mvc.perform(get(url)).andReturn().getResponse();
+            results.put(url, response.getStatus() + " " + response.getContentType());
+        }
+
+        org.assertj.core.api.Assertions.assertThat(results)
+                .allSatisfy((url, result) -> org.assertj.core.api.Assertions.assertThat(result)
+                        .as(url).isEqualTo("400 application/problem+json"));
+    }
+
+    @Test
     void updatesAndDeletesAnEnsemble() throws Exception {
         long id = createEnsemble("Old Name");
 
