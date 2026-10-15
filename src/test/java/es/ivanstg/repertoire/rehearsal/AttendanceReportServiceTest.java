@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -36,8 +37,13 @@ class AttendanceReportServiceTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 15);
+    private static final LocalDateTime NOW = TODAY.atTime(12, 0);
     private static final LocalDate FROM = LocalDate.of(2026, 9, 1);
     private static final LocalDate TO = LocalDate.of(2026, 9, 30);
+    private static final LocalDate LONG_AGO = LocalDate.of(2020, 1, 1);
+    private static final List<LocalDateTime> FOUR_SEPTEMBER_REHEARSALS = List.of(
+            LocalDateTime.of(2026, 9, 3, 19, 30), LocalDateTime.of(2026, 9, 10, 19, 30),
+            LocalDateTime.of(2026, 9, 17, 19, 30), LocalDateTime.of(2026, 9, 24, 19, 30));
 
     @Mock
     private EnsembleService ensembleService;
@@ -56,7 +62,7 @@ class AttendanceReportServiceTest {
 
     @BeforeEach
     void setUp() {
-        Clock clock = Clock.fixed(ZonedDateTime.of(TODAY.atTime(12, 0), ZONE).toInstant(), ZONE);
+        Clock clock = Clock.fixed(ZonedDateTime.of(NOW, ZONE).toInstant(), ZONE);
         service = new AttendanceReportService(ensembleService, membershipRepository, rehearsalRepository,
                 attendanceRepository, clock);
         band = new Ensemble("Riverside Concert Band", EnsembleType.BAND, null);
@@ -65,9 +71,9 @@ class AttendanceReportServiceTest {
 
     @Test
     void ratesAreSortedLowestFirst() {
-        givenMembers(member(1L, "Ana"), member(2L, "Ben"), member(3L, "Cleo"));
-        when(rehearsalRepository.countByEnsembleIdAndStartsAtGreaterThanEqualAndStartsAtLessThan(
-                1L, FROM.atStartOfDay(), TO.plusDays(1).atStartOfDay())).thenReturn(4L);
+        givenMembers(member(1L, "Ana", LONG_AGO), member(2L, "Ben", LONG_AGO), member(3L, "Cleo", LONG_AGO));
+        when(rehearsalRepository.findStartTimes(1L, FROM.atStartOfDay(), TO.plusDays(1).atStartOfDay()))
+                .thenReturn(FOUR_SEPTEMBER_REHEARSALS);
         when(attendanceRepository.countAttended(1L, FROM.atStartOfDay(), TO.plusDays(1).atStartOfDay()))
                 .thenReturn(List.of(new AttendedCount(1L, 4L), new AttendedCount(2L, 1L)));
 
@@ -84,9 +90,9 @@ class AttendanceReportServiceTest {
 
     @Test
     void ratesAreRoundedToOneDecimal() {
-        givenMembers(member(1L, "Ana"));
-        when(rehearsalRepository.countByEnsembleIdAndStartsAtGreaterThanEqualAndStartsAtLessThan(
-                anyLong(), any(), any())).thenReturn(3L);
+        givenMembers(member(1L, "Ana", LONG_AGO));
+        when(rehearsalRepository.findStartTimes(anyLong(), any(), any()))
+                .thenReturn(FOUR_SEPTEMBER_REHEARSALS.subList(0, 3));
         when(attendanceRepository.countAttended(anyLong(), any(), any()))
                 .thenReturn(List.of(new AttendedCount(1L, 2L)));
 
@@ -94,10 +100,33 @@ class AttendanceReportServiceTest {
     }
 
     @Test
+    void membersOnlyCountRehearsalsAfterTheyJoined() {
+        givenMembers(member(1L, "Ana", LONG_AGO), member(2L, "Newcomer", LocalDate.of(2026, 9, 15)));
+        when(rehearsalRepository.findStartTimes(anyLong(), any(), any())).thenReturn(FOUR_SEPTEMBER_REHEARSALS);
+        when(attendanceRepository.countAttended(anyLong(), any(), any()))
+                .thenReturn(List.of(new AttendedCount(1L, 4L), new AttendedCount(2L, 2L)));
+
+        assertThat(service.report(1L, FROM, TO))
+                .extracting(AttendanceRateResponse::name, AttendanceRateResponse::rehearsals,
+                        AttendanceRateResponse::attendanceRate)
+                .containsExactly(tuple("Ana", 4L, 100.0), tuple("Newcomer", 2L, 100.0));
+    }
+
+    @Test
+    void futureRehearsalsAreNotCountedAsMissed() {
+        givenMembers();
+        when(rehearsalRepository.findStartTimes(anyLong(), any(), any())).thenReturn(List.of());
+
+        service.report(1L, FROM, TODAY.plusDays(30));
+
+        verify(rehearsalRepository).findStartTimes(1L, FROM.atStartOfDay(), NOW);
+        verify(attendanceRepository).countAttended(1L, FROM.atStartOfDay(), NOW);
+    }
+
+    @Test
     void noRehearsalsInThePeriodGivesNullRatesSortedByName() {
-        givenMembers(member(2L, "Ben"), member(1L, "Ana"));
-        when(rehearsalRepository.countByEnsembleIdAndStartsAtGreaterThanEqualAndStartsAtLessThan(
-                anyLong(), any(), any())).thenReturn(0L);
+        givenMembers(member(2L, "Ben", LONG_AGO), member(1L, "Ana", LONG_AGO));
+        when(rehearsalRepository.findStartTimes(anyLong(), any(), any())).thenReturn(List.of());
         when(attendanceRepository.countAttended(anyLong(), any(), any())).thenReturn(List.of());
 
         assertThat(service.report(1L, FROM, TO))
@@ -106,15 +135,13 @@ class AttendanceReportServiceTest {
     }
 
     @Test
-    void defaultsToTheLastNinetyDays() {
+    void defaultsToTheLastNinetyDaysUpToNow() {
         givenMembers();
-        when(rehearsalRepository.countByEnsembleIdAndStartsAtGreaterThanEqualAndStartsAtLessThan(
-                anyLong(), any(), any())).thenReturn(0L);
+        when(rehearsalRepository.findStartTimes(anyLong(), any(), any())).thenReturn(List.of());
 
         service.report(1L, null, null);
 
-        verify(rehearsalRepository).countByEnsembleIdAndStartsAtGreaterThanEqualAndStartsAtLessThan(
-                1L, TODAY.minusDays(90).atStartOfDay(), TODAY.plusDays(1).atStartOfDay());
+        verify(rehearsalRepository).findStartTimes(1L, TODAY.minusDays(90).atStartOfDay(), NOW);
     }
 
     @Test
@@ -129,9 +156,9 @@ class AttendanceReportServiceTest {
         when(membershipRepository.findByEnsembleIdOrderByMusicianNameAsc(1L)).thenReturn(List.of(members));
     }
 
-    private Membership member(Long musicianId, String name) {
+    private Membership member(Long musicianId, String name, LocalDate joinedOn) {
         Musician musician = new Musician(name, name.toLowerCase() + "@example.com", "Trumpet");
         ReflectionTestUtils.setField(musician, "id", musicianId);
-        return new Membership(band, musician, "Trumpet", LocalDate.of(2020, 1, 1));
+        return new Membership(band, musician, "Trumpet", joinedOn);
     }
 }

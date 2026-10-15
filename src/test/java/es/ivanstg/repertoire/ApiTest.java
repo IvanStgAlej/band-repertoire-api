@@ -68,7 +68,7 @@ public abstract class ApiTest {
 
     protected void addMember(long ensembleId, long musicianId) throws Exception {
         postJson("/api/ensembles/" + ensembleId + "/members", """
-                {"musicianId": %d, "instrument": "Alto saxophone"}""".formatted(musicianId))
+                {"musicianId": %d, "instrument": "Alto saxophone", "joinedOn": "2020-01-01"}""".formatted(musicianId))
                 .andExpect(status().isCreated());
     }
 
