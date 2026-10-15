@@ -150,6 +150,17 @@ class ConcertControllerTest extends ApiTest {
     }
 
     @Test
+    void aRehearsalOnTheConcertDayDoesNotCountAsPreparation() throws Exception {
+        long concert = createConcert(band, "Autumn Concert", "2026-11-01");
+        setProgram(concert, arsenal).andExpect(status().isOk());
+        createRehearsal(band, "2026-11-01T10:00:00", arsenal);
+
+        mvc.perform(get("/api/concerts/" + concert + "/summary"))
+                .andExpect(jsonPath("$.warnings", hasSize(1)))
+                .andExpect(jsonPath("$.warnings[0].message").value("Never rehearsed before the concert"));
+    }
+
+    @Test
     void summaryOfAnEmptyProgramHasNoAverage() throws Exception {
         long concert = createConcert(band, "Autumn Concert", "2026-11-01");
 

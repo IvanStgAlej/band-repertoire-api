@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Sums up a concert program and flags pieces that are not ready: a piece needs a rehearsal in the three weeks
  * before the concert date. Rehearsals scheduled before the concert count, even if they are still in the future.
+ * A rehearsal on the concert day itself does not: a concert has a date but no time, so the cut-off is the start
+ * of that day, and a warm-up or sound check on the day is not preparation.
  */
 @Service
 @Transactional(readOnly = true)

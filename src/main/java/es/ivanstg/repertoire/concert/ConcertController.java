@@ -40,7 +40,8 @@ public class ConcertController {
     @GetMapping("/concerts/{id}/summary")
     @Operation(summary = "Program summary and preparation warnings",
             description = "Total duration, number of pieces and average difficulty, plus a warning for every "
-                    + "piece not rehearsed in the 3 weeks before the concert.")
+                    + "piece not rehearsed in the 3 weeks before the concert. Rehearsals on the concert day itself "
+                    + "do not count.")
     public ConcertSummaryResponse summary(@PathVariable Long id) {
         return summaryService.summarise(id);
     }

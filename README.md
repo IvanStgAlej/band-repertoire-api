@@ -19,7 +19,8 @@ This API answers them, and it is a small but complete example of how I build a b
 
 - **CRUD** for ensembles, musicians, memberships, repertoire, rehearsals and concerts, with pagination.
 - **Concert summary:** total duration, number of pieces and average difficulty, plus a warning for each piece
-  that has not been rehearsed in the 3 weeks before the concert.
+  that has not been rehearsed in the 3 weeks before the concert. A rehearsal on the concert day itself does
+  not count: concerts have a date but no time, and a warm-up on the day is not preparation.
 - **Forgotten repertoire:** pieces not rehearsed in the last N weeks, never-rehearsed pieces first.
 - **Attendance report:** each member's attendance rate over a period, lowest first.
 - **Repertoire search** by text (title or composer), genre, maximum difficulty and ensemble.
@@ -79,6 +80,13 @@ Then open <http://localhost:8080/swagger-ui.html>.
 
 Both ways load a fictional concert band with 8 musicians, 15 pieces, six rehearsals and an *Autumn Concert*
 two weeks from today. The concert summary therefore shows real warnings from the first run.
+
+The demo dates are relative to the day the database was created. H2 starts fresh on every run, but the Docker
+volume keeps PostgreSQL's data, so after a few days the concert is in the past. Reset the demo data with:
+
+```bash
+docker compose down -v
+```
 
 > The PostgreSQL credentials in `docker-compose.yml` are for local development only.
 
@@ -183,10 +191,12 @@ An error looks like this:
 ./mvnw verify
 ```
 
-About 90 tests:
+About 100 tests:
 
 - **HTTP-level tests** (MockMvc on the full application and a real H2 database) cover every endpoint, the
-  status codes `200/201/204/400/404/409/422` and the error format.
+  status codes `200/201/204/400/404/409/422` and the error format. Most are rolled back after each test; a few
+  commit every request, so program replacement and ensemble deletion are also checked against real commits and
+  `ON DELETE CASCADE`.
 - **Unit tests** (Mockito) cover the concert summary and attendance report logic, with a fixed clock.
 - **`@DataJpaTest` tests** run the custom JPQL queries against the Flyway schema: never-rehearsed pieces,
   future rehearsals, other ensembles.
