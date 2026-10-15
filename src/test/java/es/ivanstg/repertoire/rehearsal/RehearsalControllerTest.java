@@ -52,6 +52,14 @@ class RehearsalControllerTest extends ApiTest {
     }
 
     @Test
+    void nullPieceIdIsAFieldError() throws Exception {
+        postJson("/api/ensembles/" + band + "/rehearsals", """
+                {"startsAt": "2026-10-01T19:30:00", "pieceIds": [null]}""")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['pieceIds[0]']").exists());
+    }
+
+    @Test
     void rejectsMissingStartTime() throws Exception {
         postJson("/api/ensembles/" + band + "/rehearsals", """
                 {"location": "Music school"}""")

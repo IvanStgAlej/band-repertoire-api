@@ -1,6 +1,8 @@
 package es.ivanstg.repertoire.rehearsal.dto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,7 +17,9 @@ public record RehearsalRequest(
         @Schema(example = "[1, 2, 5]", description = "Pieces worked on")
         List<@NotNull Long> pieceIds) {
 
+    // Not List.copyOf: it throws on null elements during deserialization, before bean validation can report
+    // them as field errors.
     public RehearsalRequest {
-        pieceIds = pieceIds == null ? List.of() : List.copyOf(pieceIds);
+        pieceIds = pieceIds == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(pieceIds));
     }
 }
