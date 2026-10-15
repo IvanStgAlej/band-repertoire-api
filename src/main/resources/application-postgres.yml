@@ -1,0 +1,6 @@
+# Profile used by docker-compose. The defaults are development-only credentials.
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/repertoire}
+    username: ${DB_USER:repertoire}
+    password: ${DB_PASSWORD:repertoire}
