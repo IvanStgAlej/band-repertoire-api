@@ -51,4 +51,10 @@ public abstract class ApiTest {
         return createId("/api/musicians", """
                 {"name": "%s", "email": "%s", "mainInstrument": "Alto saxophone"}""".formatted(name, email));
     }
+
+    protected long createPiece(long ensembleId, String title, int durationSeconds, int difficulty) throws Exception {
+        return createId("/api/ensembles/" + ensembleId + "/pieces", """
+                {"title": "%s", "durationSeconds": %d, "difficulty": %d}"""
+                .formatted(title, durationSeconds, difficulty));
+    }
 }

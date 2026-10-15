@@ -1,0 +1,66 @@
+package es.ivanstg.repertoire.piece;
+
+import es.ivanstg.repertoire.common.NotFoundException;
+import es.ivanstg.repertoire.common.PageResponse;
+import es.ivanstg.repertoire.ensemble.Ensemble;
+import es.ivanstg.repertoire.ensemble.EnsembleService;
+import es.ivanstg.repertoire.piece.dto.PieceRequest;
+import es.ivanstg.repertoire.piece.dto.PieceResponse;
+import es.ivanstg.repertoire.piece.dto.PieceSearch;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class PieceService {
+
+    private final PieceRepository repository;
+    private final EnsembleService ensembleService;
+
+    public PieceService(PieceRepository repository, EnsembleService ensembleService) {
+        this.repository = repository;
+        this.ensembleService = ensembleService;
+    }
+
+    public PieceResponse create(Long ensembleId, PieceRequest request) {
+        Ensemble ensemble = ensembleService.find(ensembleId);
+        Piece piece = new Piece(ensemble, request.title(), request.composer(), request.arranger(),
+                request.durationSeconds(), request.difficulty(), request.genre());
+        return PieceResponse.from(repository.save(piece));
+    }
+
+    @Transactional(readOnly = true)
+    public PieceResponse get(Long id) {
+        return PieceResponse.from(find(id));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<PieceResponse> listByEnsemble(Long ensembleId, Pageable pageable) {
+        ensembleService.find(ensembleId);
+        return PageResponse.from(repository.findByEnsembleId(ensembleId, pageable).map(PieceResponse::from));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<PieceResponse> search(PieceSearch search, Pageable pageable) {
+        return PageResponse.from(
+                repository.findAll(PieceSpecifications.matching(search), pageable).map(PieceResponse::from));
+    }
+
+    public PieceResponse update(Long id, PieceRequest request) {
+        Piece piece = find(id);
+        piece.update(request.title(), request.composer(), request.arranger(), request.durationSeconds(),
+                request.difficulty(), request.genre());
+        return PieceResponse.from(piece);
+    }
+
+    public void delete(Long id) {
+        repository.delete(find(id));
+    }
+
+    @Transactional(readOnly = true)
+    public Piece find(Long id) {
+        return repository.findById(id).orElseThrow(() -> new NotFoundException("Piece", id));
+    }
+}
