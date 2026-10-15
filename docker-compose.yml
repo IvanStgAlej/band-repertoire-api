@@ -1,0 +1,30 @@
+# API + PostgreSQL. The credentials below are for local development only.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: repertoire
+      POSTGRES_USER: repertoire
+      POSTGRES_PASSWORD: repertoire
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repertoire -d repertoire"]
+      interval: 5s
+      retries: 10
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      DB_URL: jdbc:postgresql://db:5432/repertoire
+      DB_USER: repertoire
+      DB_PASSWORD: repertoire
+    ports:
+      - "8080:8080"
+
+volumes:
+  db-data:

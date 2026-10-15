@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: ./mvnw -B verify
+
+  docker:
+    name: Docker Compose smoke test (PostgreSQL)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker compose up -d --build
+      - name: Wait for the API
+        run: curl --fail --silent --retry 40 --retry-delay 3 --retry-all-errors http://localhost:8080/actuator/health
+      - name: Smoke test against PostgreSQL
+        run: |
+          curl --fail --silent http://localhost:8080/api/ensembles | grep -q "Riverside Concert Band"
+          curl --fail --silent http://localhost:8080/api/concerts/1/summary | grep -q "Amparito Roca"
+          curl --fail --silent http://localhost:8080/api/ensembles/1/pieces/stale | grep -q "Lincolnshire Posy"
+          curl --fail --silent http://localhost:8080/api/ensembles/1/attendance | grep -q "Hugo Castro"
+          curl --fail --silent -X POST -H "Content-Type: application/json" \
+            -d '{"name":"CI Combo","type":"COMBO"}' http://localhost:8080/api/ensembles
+      - name: Logs and cleanup
+        if: always()
+        run: |
+          docker compose logs api
+          docker compose down -v
