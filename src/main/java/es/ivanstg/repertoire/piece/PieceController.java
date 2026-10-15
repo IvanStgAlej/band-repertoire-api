@@ -1,11 +1,13 @@
 package es.ivanstg.repertoire.piece;
 
 import java.net.URI;
+import java.util.List;
 
 import es.ivanstg.repertoire.common.PageResponse;
 import es.ivanstg.repertoire.piece.dto.PieceRequest;
 import es.ivanstg.repertoire.piece.dto.PieceResponse;
 import es.ivanstg.repertoire.piece.dto.PieceSearch;
+import es.ivanstg.repertoire.piece.dto.StalePieceResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,9 +36,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class PieceController {
 
     private final PieceService service;
+    private final StalePieceService stalePieceService;
 
-    public PieceController(PieceService service) {
+    public PieceController(PieceService service, StalePieceService stalePieceService) {
         this.service = service;
+        this.stalePieceService = stalePieceService;
+    }
+
+    @GetMapping("/ensembles/{ensembleId}/pieces/stale")
+    @Operation(summary = "Forgotten repertoire",
+            description = "Pieces not rehearsed in the last N weeks (1-52, default 4). Pieces never rehearsed "
+                    + "come first, then the longest forgotten. Future rehearsals do not count.")
+    public List<StalePieceResponse> stale(@PathVariable Long ensembleId,
+                                          @RequestParam(defaultValue = "4") @Min(1) @Max(52) int weeks) {
+        return stalePieceService.findStale(ensembleId, weeks);
     }
 
     @PostMapping("/ensembles/{ensembleId}/pieces")

@@ -131,6 +131,36 @@ class ConcertControllerTest extends ApiTest {
     }
 
     @Test
+    void summaryEndpointReturnsTotalsAndWarnings() throws Exception {
+        long concert = createConcert(band, "Autumn Concert", "2026-11-01");
+        setProgram(concert, caminoReal, arsenal, amparitoRoca).andExpect(status().isOk());
+        createRehearsal(band, "2026-10-25T19:30:00", caminoReal, arsenal);
+        createRehearsal(band, "2026-09-20T19:30:00", amparitoRoca);
+
+        mvc.perform(get("/api/concerts/" + concert + "/summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Autumn Concert"))
+                .andExpect(jsonPath("$.pieceCount").value(3))
+                .andExpect(jsonPath("$.totalDurationSeconds").value(1080))
+                .andExpect(jsonPath("$.totalDuration").value("18:00"))
+                .andExpect(jsonPath("$.averageDifficulty").value(3.0))
+                .andExpect(jsonPath("$.warnings", hasSize(1)))
+                .andExpect(jsonPath("$.warnings[0].title").value("Amparito Roca"))
+                .andExpect(jsonPath("$.warnings[0].lastRehearsedAt").value("2026-09-20T19:30:00"));
+    }
+
+    @Test
+    void summaryOfAnEmptyProgramHasNoAverage() throws Exception {
+        long concert = createConcert(band, "Autumn Concert", "2026-11-01");
+
+        mvc.perform(get("/api/concerts/" + concert + "/summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pieceCount").value(0))
+                .andExpect(jsonPath("$.averageDifficulty").doesNotExist())
+                .andExpect(jsonPath("$.warnings", hasSize(0)));
+    }
+
+    @Test
     void unknownConcertIs404() throws Exception {
         mvc.perform(get("/api/concerts/999999"))
                 .andExpect(status().isNotFound())

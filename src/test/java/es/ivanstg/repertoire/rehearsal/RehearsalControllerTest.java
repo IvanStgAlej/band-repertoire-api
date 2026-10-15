@@ -138,6 +138,39 @@ class RehearsalControllerTest extends ApiTest {
     }
 
     @Test
+    void attendanceReportListsLowestRateFirst() throws Exception {
+        long first = createRehearsal(band, "2026-09-03T19:30:00");
+        long second = createRehearsal(band, "2026-09-10T19:30:00");
+        createRehearsal(band, "2026-10-20T19:30:00");
+        putJson("/api/rehearsals/" + first + "/attendance", """
+                {"entries": [{"musicianId": %d, "attended": true}, {"musicianId": %d, "attended": true}]}"""
+                .formatted(ana, ben)).andExpect(status().isOk());
+        putJson("/api/rehearsals/" + second + "/attendance", """
+                {"entries": [{"musicianId": %d, "attended": true}, {"musicianId": %d, "attended": false}]}"""
+                .formatted(ana, ben)).andExpect(status().isOk());
+
+        mvc.perform(get("/api/ensembles/" + band + "/attendance?from=2026-09-01&to=2026-09-30"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].name").value("Ben Ruiz"))
+                .andExpect(jsonPath("$[0].rehearsals").value(2))
+                .andExpect(jsonPath("$[0].attended").value(1))
+                .andExpect(jsonPath("$[0].attendanceRate").value(50.0))
+                .andExpect(jsonPath("$[1].name").value("Ana Torres"))
+                .andExpect(jsonPath("$[1].attendanceRate").value(100.0));
+    }
+
+    @Test
+    void attendanceReportValidatesPeriodAndEnsemble() throws Exception {
+        mvc.perform(get("/api/ensembles/" + band + "/attendance?from=2026-10-01&to=2026-09-01"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("'from' must not be after 'to'"));
+        mvc.perform(get("/api/ensembles/" + band + "/attendance?from=yesterday"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/ensembles/999999/attendance")).andExpect(status().isNotFound());
+    }
+
+    @Test
     void unknownRehearsalIs404() throws Exception {
         mvc.perform(get("/api/rehearsals/999999"))
                 .andExpect(status().isNotFound())

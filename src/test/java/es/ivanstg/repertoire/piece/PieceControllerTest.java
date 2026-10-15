@@ -158,6 +158,31 @@ class PieceControllerTest extends ApiTest {
     }
 
     @Test
+    void staleEndpointListsForgottenPiecesNeverRehearsedFirst() throws Exception {
+        long forgotten = createPiece(band, "Forgotten March", 180, 2);
+        long neverPlayed = createPiece(band, "Never Played", 200, 3);
+        long fresh = createPiece(band, "Fresh Overture", 300, 4);
+        createRehearsal(band, "2020-01-15T19:30:00", forgotten);
+        createRehearsal(band, java.time.LocalDateTime.now().minusDays(2).withNano(0).toString(), fresh);
+
+        mvc.perform(get("/api/ensembles/" + band + "/pieces/stale?weeks=4"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].pieceId",
+                        org.hamcrest.Matchers.contains((int) neverPlayed, (int) forgotten)))
+                .andExpect(jsonPath("$[0].lastRehearsedAt").doesNotExist())
+                .andExpect(jsonPath("$[0].weeksSinceLastRehearsal").doesNotExist())
+                .andExpect(jsonPath("$[1].lastRehearsedAt").value("2020-01-15T19:30:00"))
+                .andExpect(jsonPath("$[1].weeksSinceLastRehearsal").isNumber());
+    }
+
+    @Test
+    void staleEndpointValidatesWeeksAndEnsemble() throws Exception {
+        mvc.perform(get("/api/ensembles/" + band + "/pieces/stale?weeks=0")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/ensembles/" + band + "/pieces/stale?weeks=53")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/ensembles/999999/pieces/stale")).andExpect(status().isNotFound());
+    }
+
+    @Test
     void rejectsMaxDifficultyOutOfRange() throws Exception {
         mvc.perform(get("/api/pieces?maxDifficulty=9")).andExpect(status().isBadRequest());
     }

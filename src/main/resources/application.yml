@@ -2,7 +2,7 @@ spring:
   application:
     name: band-repertoire-api
   datasource:
-    url: jdbc:h2:mem:repertoire;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    url: jdbc:h2:mem:repertoire;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
     username: sa
     password: ""
   jpa:

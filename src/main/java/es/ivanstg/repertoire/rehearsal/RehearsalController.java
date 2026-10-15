@@ -1,8 +1,11 @@
 package es.ivanstg.repertoire.rehearsal;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.util.List;
 
 import es.ivanstg.repertoire.common.PageResponse;
+import es.ivanstg.repertoire.rehearsal.dto.AttendanceRateResponse;
 import es.ivanstg.repertoire.rehearsal.dto.AttendanceRequest;
 import es.ivanstg.repertoire.rehearsal.dto.RehearsalRequest;
 import es.ivanstg.repertoire.rehearsal.dto.RehearsalResponse;
@@ -14,6 +17,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,9 +34,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class RehearsalController {
 
     private final RehearsalService service;
+    private final AttendanceReportService attendanceReportService;
 
-    public RehearsalController(RehearsalService service) {
+    public RehearsalController(RehearsalService service, AttendanceReportService attendanceReportService) {
         this.service = service;
+        this.attendanceReportService = attendanceReportService;
+    }
+
+    @GetMapping("/ensembles/{ensembleId}/attendance")
+    @Operation(summary = "Attendance report",
+            description = "Attendance rate of each member between from and to (inclusive ISO dates, default: "
+                    + "the last 90 days), lowest first. The rate is null when there were no rehearsals.")
+    public List<AttendanceRateResponse> attendanceReport(
+            @PathVariable Long ensembleId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return attendanceReportService.report(ensembleId, from, to);
     }
 
     @PostMapping("/ensembles/{ensembleId}/rehearsals")

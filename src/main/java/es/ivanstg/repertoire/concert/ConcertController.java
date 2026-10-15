@@ -5,6 +5,7 @@ import java.net.URI;
 import es.ivanstg.repertoire.common.PageResponse;
 import es.ivanstg.repertoire.concert.dto.ConcertRequest;
 import es.ivanstg.repertoire.concert.dto.ConcertResponse;
+import es.ivanstg.repertoire.concert.dto.ConcertSummaryResponse;
 import es.ivanstg.repertoire.concert.dto.ProgramRequest;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,9 +29,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConcertController {
 
     private final ConcertService service;
+    private final ConcertSummaryService summaryService;
 
-    public ConcertController(ConcertService service) {
+    public ConcertController(ConcertService service, ConcertSummaryService summaryService) {
         this.service = service;
+        this.summaryService = summaryService;
+    }
+
+    @GetMapping("/concerts/{id}/summary")
+    @Operation(summary = "Program summary and preparation warnings",
+            description = "Total duration, number of pieces and average difficulty, plus a warning for every "
+                    + "piece not rehearsed in the 3 weeks before the concert.")
+    public ConcertSummaryResponse summary(@PathVariable Long id) {
+        return summaryService.summarise(id);
     }
 
     @PostMapping("/ensembles/{ensembleId}/concerts")
