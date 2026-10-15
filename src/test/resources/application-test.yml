@@ -1,4 +1,7 @@
-# Tests start from an empty schema: no demo data.
+# Tests start from an empty schema: no demo data, and a database of their own
+# (DemoDataTest runs the default profile in the same JVM, and in-memory H2 databases are shared by name).
 spring:
+  datasource:
+    url: jdbc:h2:mem:repertoire-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
   flyway:
     locations: classpath:db/migration
