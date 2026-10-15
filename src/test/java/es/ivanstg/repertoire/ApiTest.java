@@ -5,6 +5,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,6 +28,18 @@ public abstract class ApiTest {
 
     @Autowired
     protected MockMvc mvc;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    /**
+     * Every test runs in one transaction, so entities stay cached between requests. Call this to see what a
+     * fresh request would see, e.g. after the database itself removed rows with ON DELETE CASCADE.
+     */
+    protected void flushAndClear() {
+        entityManager.flush();
+        entityManager.clear();
+    }
 
     protected ResultActions postJson(String url, String json) throws Exception {
         return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(json));
@@ -64,6 +78,19 @@ public abstract class ApiTest {
                 .collect(java.util.stream.Collectors.joining(", "));
         return createId("/api/ensembles/" + ensembleId + "/rehearsals", """
                 {"startsAt": "%s", "location": "Music school", "pieceIds": [%s]}""".formatted(startsAt, ids));
+    }
+
+    /** {@code date} is an ISO date such as "2026-11-01". */
+    protected long createConcert(long ensembleId, String title, String date) throws Exception {
+        return createId("/api/ensembles/" + ensembleId + "/concerts", """
+                {"title": "%s", "date": "%s", "venue": "Town hall"}""".formatted(title, date));
+    }
+
+    protected ResultActions setProgram(long concertId, long... pieceIds) throws Exception {
+        String ids = java.util.Arrays.stream(pieceIds).mapToObj(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(", "));
+        return putJson("/api/concerts/" + concertId + "/program", """
+                {"pieceIds": [%s]}""".formatted(ids));
     }
 
     protected long createPiece(long ensembleId, String title, int durationSeconds, int difficulty) throws Exception {

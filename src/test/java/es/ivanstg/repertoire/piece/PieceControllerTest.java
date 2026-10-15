@@ -92,6 +92,32 @@ class PieceControllerTest extends ApiTest {
     }
 
     @Test
+    void deletingAPieceInAConcertProgramIs409() throws Exception {
+        long id = createPiece(band, "Arsenal", 240, 3);
+        long concert = createConcert(band, "Autumn Concert", "2026-11-01");
+        setProgram(concert, id).andExpect(status().isOk());
+
+        mvc.perform(delete("/api/pieces/" + id))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail")
+                        .value("Piece " + id + " is part of a concert program; remove it from the program first"));
+        mvc.perform(get("/api/pieces/" + id)).andExpect(status().isOk());
+    }
+
+    @Test
+    void deletingAnEnsembleRemovesItsRepertoireAndConcerts() throws Exception {
+        long id = createPiece(band, "Arsenal", 240, 3);
+        long concert = createConcert(band, "Autumn Concert", "2026-11-01");
+        setProgram(concert, id).andExpect(status().isOk());
+
+        flushAndClear();
+        mvc.perform(delete("/api/ensembles/" + band)).andExpect(status().isNoContent());
+        flushAndClear();
+        mvc.perform(get("/api/pieces/" + id)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/concerts/" + concert)).andExpect(status().isNotFound());
+    }
+
+    @Test
     void searchesByTitleOrComposerIgnoringCase() throws Exception {
         createFullPiece(band, "El Camino Real", "Alfred Reed", 4, "Concert band");
         createFullPiece(band, "Arsenal", "Jan Van der Roost", 3, "March");

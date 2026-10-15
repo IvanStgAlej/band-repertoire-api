@@ -1,6 +1,7 @@
 package es.ivanstg.repertoire.piece;
 
 import es.ivanstg.repertoire.common.BusinessRuleException;
+import es.ivanstg.repertoire.common.ConflictException;
 import es.ivanstg.repertoire.common.NotFoundException;
 import es.ivanstg.repertoire.common.PageResponse;
 import es.ivanstg.repertoire.ensemble.Ensemble;
@@ -57,7 +58,12 @@ public class PieceService {
     }
 
     public void delete(Long id) {
-        repository.delete(find(id));
+        Piece piece = find(id);
+        if (repository.isInAnyProgram(id)) {
+            throw new ConflictException(
+                    "Piece " + id + " is part of a concert program; remove it from the program first");
+        }
+        repository.delete(piece);
     }
 
     @Transactional(readOnly = true)
