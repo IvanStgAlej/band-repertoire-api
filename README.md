@@ -7,6 +7,9 @@ and concert programs, and **warns you which pieces are not ready** before a conc
 
 Built with **Java 21 and Spring Boot 4**, with PostgreSQL, Flyway, OpenAPI, Docker Compose and GitHub Actions.
 
+📱 **Client app:** [band-repertoire-android](https://github.com/IvanStgAlej/band-repertoire-android), Kotlin +
+Jetpack Compose. It shows the repertoire, the next concert's readiness and rehearsal attendance using this API.
+
 ![Swagger UI](docs/swagger-ui.jpg)
 
 ## Why
@@ -207,7 +210,8 @@ endpoints against PostgreSQL.
 
 ## Roadmap
 
-- Android client in Kotlin and Jetpack Compose: repertoire, the next concert and taking attendance.
+- ~~Android client in Kotlin and Jetpack Compose~~: done, see
+  [band-repertoire-android](https://github.com/IvanStgAlej/band-repertoire-android).
 - Spring Security with JWT and roles (conductor / musician).
 - Testcontainers for integration tests on PostgreSQL.
 - Public deployment with a live demo link.
